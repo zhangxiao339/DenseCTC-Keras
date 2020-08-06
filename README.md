@@ -1,4 +1,4 @@
-## <href="https://github.com/zhangxiao339/DenseCTC-Keras/tree/master/README_CN.md">中文</a>
+## <a href="https://github.com/zhangxiao339/DenseCTC-Keras/tree/master/README_CN.md">中文</a>
 ## Introduction
     The basic model of text recognition, based on densenet+ CTC, does not include LSTM, can take into account the recognition rate and performance, CPU on average 5ms on macbookpro i7
     Based on Tensorflow and Keras, the end - to - end detection and recognition of variable length Chinese characters are realized

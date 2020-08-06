@@ -1,4 +1,4 @@
-<href="https://github.com/zhangxiao339/DenseCTC-Keras/tree/master/README.md">English</a>
+<a href="https://github.com/zhangxiao339/DenseCTC-Keras/tree/master/README.md">English</a>
 ## 简介
     文字识别基础模型，基于densenet+ctc，不包含lstm，可兼顾识别率和性能，cpu上平均耗时5ms on macbookpro i7
     基于Tensorflow和Keras实现端到端的不定长中文字符检测和识别
