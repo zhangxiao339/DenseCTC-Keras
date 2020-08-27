@@ -15,16 +15,40 @@ import tensorflow as tf
 import os
 import cv2
 import numpy as np
+from multiprocessing import cpu_count
+import sys
 
 
-def get_session(gpu_fraction=1.0):
-    num_threads = os.environ.get('OMP_NUM_THREADS')
+def get_session(on_gpu=False, gpu_fraction=1.0):
+    # num_threads = os.environ.get('OMP_NUM_THREADS')
+    num_threads = cpu_count()
+    print('got thread size: ' + str(num_threads))
     gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=gpu_fraction)
     if num_threads:
-        return tf.Session(config=tf.ConfigProto(
-            gpu_options=gpu_options, intra_op_parallelism_threads=num_threads))
+        if on_gpu:
+            device_config = tf.ConfigProto(device_count={"CPU": num_threads, "GPU": 1},
+                                           gpu_options=gpu_options,
+                                           intra_op_parallelism_threads=num_threads
+                                           )
+        else:
+            device_config = tf.ConfigProto(device_count={"CPU": num_threads, "GPU": 0},
+                                           gpu_options=gpu_options,
+                                           intra_op_parallelism_threads=num_threads
+                                           )
+        # return tf.Session(config=tf.ConfigProto(
+        #     gpu_options=gpu_options, intra_op_parallelism_threads=num_threads))
+        return tf.Session(config=device_config)
     else:
-        return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        if on_gpu:
+            device_config = tf.ConfigProto(device_count={ "GPU": 1},
+                                           gpu_options=gpu_options
+                                           )
+        else:
+            device_config = tf.ConfigProto(device_count={"GPU": 0},
+                                           gpu_options=gpu_options
+                                           )
+        # return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        return tf.Session(config=device_config)
 
 
 def ctc_lambda_func(args):
@@ -43,15 +67,15 @@ class Dense_CTC_model(object):
         try:
             self.input = Input(shape=(self.config.image_max_height, None, 1), name='the_input')
             self.output = Densenet.dense_cnn(self.input, self.config.num_class, self.config.dropout)
-            K.set_session(get_session(gpu_fraction=self.config.gpu_frac_mem))
+            K.set_session(get_session(on_gpu=self.config.gpu_flag, gpu_fraction=self.config.gpu_frac_mem))
             self.basemodel = Model(inputs=self.input, outputs=self.output)
-            model_file = os.path.join(self.config.model_path, self.config.trained_model_file_name)
-            if os.path.exists(model_file):
-                print("Loading model weights from: {}".format(model_file))
-                self.basemodel.load_weights(model_file)
+            self.model_file = os.path.join(self.config.model_path, self.config.trained_model_file_name)
+            if os.path.exists(self.model_file):
+                print("Loading model weights from: {}".format(self.model_file))
+                self.basemodel.load_weights(self.model_file)
                 print('done!')
             else:
-                print('can not found the trianed model: {}'.format(model_file))
+                print('can not found the trianed model: {}'.format(self.model_file))
                 if not self.is_training:
                     return False
             if self.is_training:
@@ -114,11 +138,21 @@ class Dense_CTC_model(object):
         tensorboard = TensorBoard(log_dir=self.config.logs_path, write_graph=True)
 
         print('-----------Start training-----------')
-        self.train_model.fit_generator(train_data_loader.generate(),
+        try:
+            self.train_model.fit_generator(train_data_loader.generate(),
                             steps_per_epoch=train_item_size // self.config.batch_size,
                             epochs=self.config.max_epoch_size,
                             initial_epoch=self.config.init_epoch,
                             validation_data=test_data_loader.generate(),
                             validation_steps=test_item_size // self.config.batch_size,
+                            workers=20,
+                            use_multiprocessing=True,
                             callbacks=[checkpoint, earlystop, changelr, tensorboard])
+        except KeyboardInterrupt:
+            self.train_model.save_weights(self.model_file)
+            try:
+                sys.exit(0)
+            except SystemExit:
+                os._exit(0)
+        self.train_model.save_weights(self.model_file)
         print('train done!')
