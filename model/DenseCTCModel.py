@@ -6,7 +6,7 @@
 # @Site    : https://github.com/zhangxiao339
 # @File    : DenseCTCModel.py
 from keras.layers import Input
-from BaodanOCR.component.textRecognizer.DensenetCTC.trainner.model import Densenet
+from . import Densenet
 from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateScheduler, TensorBoard
 from keras import backend as K
 from keras.models import Model
