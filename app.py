@@ -28,8 +28,8 @@ if __name__ == '__main__':
         type=str,
         help=('Where the image you want rec?'))
     parameters = parser.parse_args(sys.argv[1:])
-
-    config = cnn_ctc_conf(gpu=-1)
+    gpu = parameters.gpu
+    config = cnn_ctc_conf(gpu=gpu)
     is_training = False
     if parameters.mode == 'trainval':
         is_training = True
